@@ -1,7 +1,7 @@
 import roadrunner
 import time
 
-file_name = "small-test-sbml"
+file_name = argv[1]
 
 rr = roadrunner.RoadRunner(file_name + ".xml")
 
@@ -18,11 +18,11 @@ for i in range(100):
     end = time.time()
     times.append(end - start)
 
-time_file = open("rr1.6-benchmark-times-" + file_name + ".txt", "w")
+time_file = open("rr-benchmark-times-" + file_name + ".txt", "w")
 for t in times:
     time_file.write("%.14f\n" % t)
 
-results_file = open("rr1.6-benchmark-results-" + file_name + ".txt", "w")
+results_file = open("rr-benchmark-results-" + file_name + ".txt", "w")
 for i in range(1, len(result[0])):
     for r in result:
         results_file.write("%.14f\n" % r[i])

@@ -2,7 +2,7 @@ from COPASI import *
 
 import time
 
-file_name = "egfr_ground_sbml"
+file_name = argv[1]
 
 datamodel = CRootContainer.addDatamodel()
 
