@@ -200,7 +200,7 @@ for arg in sys.argv[1:]:
             print("Expected an option, got: " + arg)
             print_usage()
 
-matlab_command = "{} -nodisplay -nosplash -nodesktop -r \"try, options = odeset('RelTol'," + str(reltol) + ",'AbsTol'," + str(abstol) + "); tic; {}(linspace(0,50,100), @ode15s, options); setenv(\\\"MATLAB_TOC\\\", toc); catch me, disp(me.message); end\""
+matlab_command = "{} -log -nosplash -nodesktop -r \"try, options = odeset('RelTol'," + str(reltol) + ",'AbsTol'," + str(abstol) + "); tic; {}(linspace(0,50,100), @ode15s, options); time = toc; fid=fopen('~benchmark-temp.txt', 'w+'); fprintf(fid, '%.14f', toc); fclose(fid); catch me, disp(me.message); exit; end, exit;\""
 
 if(len(sbml_files) == 0):
     sbml_files = ["small-test-sbml.xml", "egfr_ground_sbml.xml"]
@@ -258,8 +258,17 @@ for sim in simulators:
             model_name_begin += 1
             model_name = matlab_code[model_name_begin:first_paren]
             print(model_name)
-            open(output_dir + "/" + model_name + ".m", "w+").write(matlab_code)
-            print(subprocess.check_output(matlab_command.format(matlab_executable, model_name, matlab_time_format)))
+            fid = open(output_dir + "/" + model_name + ".m", "w+")
+            fid.write(matlab_code)
+            fid.close()
+	    for i in range(trials):
+		subprocess.check_output(matlab_command.format(matlab_executable, model_name))
+                fid = open("~benchmark-temp.txt", "r")
+                times.append(float(fid.read()))
+                fid.close()
+    os.system("rm ~benchmark-temp.txt")
+	    
+
 
 
     time_map[file_name][sim] = times
