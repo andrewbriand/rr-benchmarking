@@ -2,14 +2,20 @@ import sys
 import time
 import os
 import subprocess
+import platform
 
 sbml_files = []
 simulators = []
-output_dir = ""
+output_dir = "."
 matlab_executable = ""
-matlab_command = "{} -nodisplay -nosplash -nodesktop -r \"try, options = odeset('RelTol',1e-12,'AbsTol',1e-9); tic; {}(linspace(0,50,100), @ode15s, options); catch me, disp(me.message); end\""
 matlab_time_format = "\"%.14f\""
 trials = 100
+reltol = 1e-12
+abstol = 1e-9
+time_start = 0
+time_end = 50
+steps = 100
+
 
 def roadrunner_benchmark():
     try:
@@ -26,7 +32,7 @@ def roadrunner_benchmark():
         for i in range(trials):
             start = time.time()
             rr.reset()
-            rr.simulate(0, 50, 100)
+            rr.simulate(time_start, time_end, steps)
             end = time.time()
             times.append(end - start)
 
@@ -59,11 +65,11 @@ def copasi_benchmark():
         assert (isinstance(problem, CTrajectoryProblem))
 
         # simulate 100 steps
-        problem.setStepNumber(100)
+        problem.setStepNumber(steps)
         # start at time 0
-        datamodel.getModel().setInitialTime(0.0)
+        datamodel.getModel().setInitialTime(time_start)
         # simulate a duration of 10 time units
-        problem.setDuration(50)
+        problem.setDuration(time_end - time_start)
         # tell the problem to actually generate time series data
         problem.setTimeSeriesRequested(True)
         # tell the problem, that we want exactly 100 simulation steps (not automatically controlled)
@@ -76,11 +82,11 @@ def copasi_benchmark():
 
         parameter = method.getParameter("Absolute Tolerance")
         assert parameter is not None
-        parameter.setValue(1.0e-9)
+        parameter.setValue(abstol)
 
         parameter = method.getParameter("Relative Tolerance")
         assert parameter is not None
-        parameter.setValue(1.0e-12)
+        parameter.setValue(reltol)
 
         try:
           # now we run the actual trajectory
@@ -124,6 +130,16 @@ for arg in sys.argv[1:]:
             mode = "matlab_exe"
         elif(option == "trials"):
             mode = "trials"
+        elif(option == "start"):
+            mode = "start"
+        elif(option == "end"):
+            mode = "end"
+        elif(option == "reltol"):
+            mode = "reltol"
+        elif(option == "steps"):
+            mode = "steps"
+        elif(option == "abstol"):
+            mode = "abstol"
         else:
             print("Unrecognized option: " + option)
             print_usage()
@@ -145,9 +161,46 @@ for arg in sys.argv[1:]:
                 print("Invalid argument to trials:")
                 print(e)
             mode = None
+        elif(mode == "steps"):
+            try:
+                steps = int(arg)
+            except Exception as e:
+                print("Invalid argument to steps:")
+                print(e)
+            mode = None
+        elif(mode == "reltol"):
+            try:
+                reltol = float(arg)
+            except Exception as e:
+                print("Invalid argument to reltol:")
+                print(e)
+            mode = None
+        elif(mode == "abstol"):
+            try:
+                abstol = float(arg)
+            except Exception as e:
+                print("Invalid argument to abstol:")
+                print(e)
+            mode = None
+        elif(mode == "start"):
+            try:
+                start = float(arg)
+            except Exception as e:
+                print("Invalid argument to start:")
+                print(e)
+            mode = None
+        elif(mode == "end"):
+            try:
+                end = float(arg)
+            except Exception as e:
+                print("Invalid argument to end")
+                print(e)
+            mode = None
         else:
             print("Expected an option, got: " + arg)
             print_usage()
+
+matlab_command = "{} -nodisplay -nosplash -nodesktop -r \"try, options = odeset('RelTol'," + str(reltol) + ",'AbsTol'," + str(abstol) + "); tic; {}(linspace(0,50,100), @ode15s, options); catch me, disp(me.message); end\""
 
 if(len(sbml_files) == 0):
     sbml_files = ["small-test-sbml.xml", "egfr_ground_sbml.xml"]
@@ -210,5 +263,13 @@ for sim in simulators:
 
     time_map[file_name][sim] = times
 
+
 print(time_map)
 
+for file_name in sbml_files:
+    output_file = open(output_dir + "/" + file_name + "-benchmark.csv", "w+")
+    output = "Absolute tolerance:,," + str(abstol) + ",,Platform:," + platform.platform() + ",,,Processor:,," + platform.processor().replace(",", " ") + "\n"
+    output += "Relative tolerance:,," + str(reltol) + ",,File:," + file_name + "\n"
+    output += "start:," + str(time_start) + ",end:," + str(time_end) + ",steps:," + str(steps) + "\n"
+    output_file.write(output)
+    output_file.close()
