@@ -200,7 +200,7 @@ for arg in sys.argv[1:]:
             print("Expected an option, got: " + arg)
             print_usage()
 
-matlab_command = "{} -nodisplay -nosplash -nodesktop -r \"try, options = odeset('RelTol'," + str(reltol) + ",'AbsTol'," + str(abstol) + "); tic; {}(linspace(0,50,100), @ode15s, options); catch me, disp(me.message); end\""
+matlab_command = "{} -nodisplay -nosplash -nodesktop -r \"try, options = odeset('RelTol'," + str(reltol) + ",'AbsTol'," + str(abstol) + "); tic; {}(linspace(0,50,100), @ode15s, options); setenv(\\\"MATLAB_TOC\\\", toc); catch me, disp(me.message); end\""
 
 if(len(sbml_files) == 0):
     sbml_files = ["small-test-sbml.xml", "egfr_ground_sbml.xml"]
@@ -261,6 +261,7 @@ for sim in simulators:
             open(output_dir + "/" + model_name + ".m", "w+").write(matlab_code)
             print(subprocess.check_output(matlab_command.format(matlab_executable, model_name, matlab_time_format)))
 
+
     time_map[file_name][sim] = times
 
 
@@ -271,5 +272,18 @@ for file_name in sbml_files:
     output = "Absolute tolerance:,," + str(abstol) + ",,Platform:," + platform.platform() + ",,,Processor:,," + platform.processor().replace(",", " ") + "\n"
     output += "Relative tolerance:,," + str(reltol) + ",,File:," + file_name + "\n"
     output += "start:," + str(time_start) + ",end:," + str(time_end) + ",steps:," + str(steps) + "\n"
+    output += "\n"
+    for sim in time_map[file_name].keys():
+        output += sim + " average:,,," + str(sum(time_map[file_name][sim])/trials) + "\n"
+        output += sim + " minimum:,,," + str(min(time_map[file_name][sim])) + "\n"
+        output += "\n"
+
+    for sim in time_map[file_name].keys():
+        output += sim + ","
+    output += "\n"
+    for i in range(trials):
+        for sim in time_map[file_name].keys():
+            output += str(time_map[file_name][sim][i]) + ","
+        output += "\n"
     output_file.write(output)
     output_file.close()
