@@ -7,8 +7,6 @@ import platform
 sbml_files = []
 simulators = []
 output_dir = "."
-matlab_executable = ""
-matlab_time_format = "\"%.14f\""
 trials = 100
 reltol = 1e-12
 abstol = 1e-9
@@ -121,6 +119,16 @@ def copasi_benchmark():
 def print_usage():
 				print("Usage:")
 				print("[-files [sbml files to benchmark with]] [-sims [simulators to test]]")
+                                print("\t-files\t\tSpecify SBML files separated by spaces to benchmark on")
+                                print("\t-sims\t\tSpecify which simulators should be benchmarked. Currently supported are roadrunner, sbml2matlab and copasi")
+                                print("\t-output_dir\t\tSpecify which directory output files should be written to")
+                                print("\t-trials\t\tSpecify the number of trials to run with each simulator")
+                                print("\t-start\t\tSpecify the start time of each simulation to be run")
+                                print("\t-end\t\tSpecify the end time of each simulation to be run")
+                                print("\t-steps\t\tSpecify the number of steps to be run in each simulation")
+                                print("\t-reltol\t\tSpecify the relative tolerance for integrators used in simulation. Default is 1e-12")
+                                print("\t-abstol\t\tSpecify the absolute tolerance for integrators used in simulation. Default is 1e-9")
+                                print("\t-help\t\tPrint this help message")
 				print("Example: " + sys.argv[0] + " -files test-sbml.xml -sims roadrunner sbml2matlab")
 				sys.exit()
 
@@ -134,8 +142,6 @@ for arg in sys.argv[1:]:
 												mode = "sims"
 								elif(option == "output_dir"):
 												mode = "output_dir"
-								elif(option == "matlab_exe"):
-												mode = "matlab_exe"
 								elif(option == "trials"):
 												mode = "trials"
 								elif(option == "start"):
@@ -148,6 +154,8 @@ for arg in sys.argv[1:]:
 												mode = "steps"
 								elif(option == "abstol"):
 												mode = "abstol"
+                                                                elif(option == "help" or option == "h"):
+                                                                                                print_usage()
 								else:
 												print("Unrecognized option: " + option)
 												print_usage()
@@ -158,9 +166,6 @@ for arg in sys.argv[1:]:
 												sbml_files.append(arg)
 								elif(mode == "output_dir"):
 												output_dir = arg
-												mode = None
-								elif(mode == "matlab_exe"):
-												matlab_executable = arg
 												mode = None
 								elif(mode == "trials"):
 												try:
@@ -219,12 +224,6 @@ if(len(simulators) == 0):
 				simulators = ["sbml2matlab", "roadrunner", "copasi"]
 				print("No simulators specified, resorting to defaults:")
 				print(simulators)
-
-if "sbml2matlab" in simulators:
-				if matlab_executable == "":
-								matlab_executable = "matlab"
-								print("No matlab executable specified, resorting to default:")
-								print(matlab_executable)
 
 if(output_dir == ""):
 				print("No output directory specified, resorting to working directory")
