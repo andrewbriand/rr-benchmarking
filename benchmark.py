@@ -200,14 +200,14 @@ for arg in sys.argv[1:]:
             mode = None
         elif(mode == "start"):
             try:
-                start = float(arg)
+                time_start = float(arg)
             except Exception as e:
                 print("Invalid argument to start:")
                 print(e)
             mode = None
         elif(mode == "end"):
             try:
-                end = float(arg)
+                time_end = float(arg)
             except Exception as e:
                 print("Invalid argument to end")
                 print(e)
