@@ -216,9 +216,6 @@ for arg in sys.argv[1:]:
             print("Expected an option, got: " + arg)
             print_usage()
 
-matlab_command = "{} -log -nosplash -nodesktop -r \"try, options = odeset('RelTol'," + str(reltol) + ",'AbsTol'," + str(
-    abstol) + "); fid=fopen('~benchmark-temp-{}.txt', 'w+'); for i = 1:{}, tic; {}(linspace({},{},{}), @ode15s, options); time = toc; fprintf(fid, '%.14f\\n', time); end, fclose(fid); catch me, disp(me.message); exit; end\""
-
 if(len(sbml_files) == 0):
     sbml_files = ["small-test-sbml.xml", "egfr_ground_sbml.xml"]
     print("No sbml files specified, resorting to defaults:")
@@ -231,7 +228,8 @@ if(len(simulators) == 0):
 
 if(output_dir == ""):
     print("No output directory specified, resorting to working directory")
-os.system("mkdir " + output_dir)
+
+os.makedirs(output_dir, exist_ok=True)
 time_map = {}
 
 for sim in simulators:
@@ -262,7 +260,6 @@ for sim in simulators:
             sbml = sbml_file.read()
             matlab_code = sbml2matlab.sbml2matlab(sbml)
             sbml_file.close()
-            # this is pretty terrible, should probably find a better way to get the model name
             first_paren = 0
             while matlab_code[first_paren] != "(":
                 first_paren += 1
@@ -271,20 +268,20 @@ for sim in simulators:
                 model_name_begin -= 1
             model_name_begin += 1
             model_name = matlab_code[model_name_begin:first_paren]
-            matlab_code = "function [time] = temp()\n\ttic; options = odeset('RelTol'," + str(reltol) + ",'AbsTol'," + str(abstol) + ");\n" + \
+            matlab_code = "function [time] = temp()\n\t options = odeset('RelTol'," + str(reltol) + ",'AbsTol'," + str(abstol) + "); tic;\n" + \
                 "\t{}(linspace({},{},{}), @ode15s, options); time = toc;\n".format(
                     model_name, time_start, time_end, steps) + matlab_code
-            # print(model_name)
             fid = open("temp.m", "w+")
             fid.write(matlab_code)
             fid.close()
             times = []
+            eng = matlab.engine.start_matlab()
+            # Run the function once to allow matlab to JIT it, for a fair
+            # comparison to libroadrunner
+            throwaway_time = eng.eval("temp")
             for i in range(trials):
-                eng = matlab.engine.start_matlab()
                 times.append(eng.eval("temp"))
             time_map[sim][file_name] = times
-
-# print(time_map)
 
 for file_name in sbml_files:
     output_file = open(output_dir + "/" + file_name + "-benchmark.csv", "w+")
